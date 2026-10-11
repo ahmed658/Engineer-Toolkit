@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Engineer Toolkit</title>
+<style>
+body{font-family:Arial,sans-serif;background:#f2f4f8;margin:0;padding:20px}
+.app{max-width:700px;margin:auto}
+h1{text-align:center;color:#222}
+.card{background:white;padding:20px;border-radius:15px;box-shadow:0 4px 15px rgba(0,0,0,.1);margin-bottom:20px}
+label{display:block;margin-top:15px;margin-bottom:7px;font-weight:bold}
+input,select,button{width:100%;box-sizing:border-box;padding:13px;border-radius:10px;border:1px solid #ccc;font-size:16px}
+button{margin-top:20px;background:#1976d2;color:white;border:none;font-weight:bold}
+button:active{background:#125a9c}
+.result{margin-top:20px;padding:15px;background:#eef5ff;border-radius:10px;font-size:18px;line-height:1.4}
+.subnet-table-container{width:100%;overflow-x:auto;margin-top:15px;border-radius:10px}
+.subnet-table{width:900px;min-width:900px;border-collapse:collapse;text-align:center;background:white}
+.subnet-table th{padding:12px 10px;font-weight:bold;border:1px solid #ccc}
+.subnet-table td{padding:10px;border:1px solid #ccc;white-space:nowrap}
+.subnet-table tr:nth-child(even){background:#f5f5f5}
+.subnet-table tr:hover{background:#eee}
+</style>
+</head>
+<body>
+<div class="app">
+<h1>🛠️ Engineer Toolkit 🇮🇶</h1>
+
+<div class="card">
+<h2>🔢 محول أنظمة الأرقام</h2>
+<label>أدخل الرقم:</label>
+<input id="numberInput" type="text" placeholder="مثال: 255">
+
+<label>اختر نوع الرقم:</label>
+<select id="numberType">
+<option value="decimal">Decimal</option>
+<option value="binary">Binary</option>
+<option value="hex">Hexadecimal</option>
+</select>
+
+<button onclick="convertNumber()">تحويل</button>
+
+<div class="result" id="result">النتيجة ستظهر هنا</div>
+
+<button onclick="copyResult()">📋 نسخ النتائج</button>
+<button onclick="clearAll()">🗑️ مسح</button>
+</div>
+
+<div class="card">
+<h2>🌐 IP Calculator</h2>
+
+<label>IP Address:</label>
+<input id="ipInput" type="text" placeholder="مثال: 192.168.1.10">
+
+<label>Subnet Mask:</label>
+<input id="maskInput" type="text" placeholder="مثال: 255.255.255.0">
+
+<label>CIDR:</label>
+<input id="cidrInput" type="number" min="0" max="32" placeholder="مثال: 24">
+
+<button onclick="calculateIP()">🧮 احسب</button>
+
+<div class="result" id="ipResult">نتيجة الشبكة ستظهر هنا</div>
+
+<div class="result" id="subnetResult">جدول الشبكات سيظهر هنا</div>
+
+<button onclick="generateSubnets()">📊 عرض الشبكات</button>
+</div>
+</div>
+
+<script>
+function convertNumber(){
+let input=document.getElementById("numberInput").value.trim();
+let type=document.getElementById("numberType").value;
+let decimalNumber;
+
+if(type==="decimal"){
+if(!/^[0-9]+$/.test(input)){showError("❌ أدخل رقم Decimal صحيح");return}
+decimalNumber=parseInt(input,10);
+}
+else if(type==="binary"){
+if(!/^[01]+$/.test(input)){showError("❌ الرقم Binary يجب أن يحتوي فقط على 0 و 1");return}
+decimalNumber=parseInt(input,2);
+}
+else if(type==="hex"){
+if(!/^[0-9a-fA-F]+$/.test(input)){showError("❌ الرقم Hexadecimal غير صحيح");return}
+decimalNumber=parseInt(input,16);
+}
+
+document.getElementById("result").innerHTML=
+"🔵 Decimal: "+decimalNumber.toString(10)+
+"<br><br>🟢 Binary: "+decimalNumber.toString(2)+
+"<br><br>🟠 Hexadecimal: "+decimalNumber.toString(16).toUpperCase();
+}
+
+function showError(message){
+document.getElementById("result").innerHTML=message;
+}
+
+function copyResult(){
+let result=document.getElementById("result").innerText;
+navigator.clipboard.writeText(result)
+.then(function(){alert("✅ تم نسخ النتيجة")})
+.catch(function(){alert("❌ لم يتم النسخ")});
+}
+
+function clearAll(){
+document.getElementById("numberInput").value="";
+document.getElementById("result").innerHTML="النتيجة ستظهر هنا";
+}
+
+function calculateIP(){
+let ip=document.getElementById("ipInput").value.trim();
+let mask=document.getElementById("maskInput").value.trim();
+let cidrValue=document.getElementById("cidrInput").value.trim();
+
+if(cidrValue!==""){
+let cidrInput=parseInt(cidrValue,10);
+if(isNaN(cidrInput)||cidrInput<0||cidrInput>32){
+showIPError("❌ CIDR يجب أن يكون بين 0 و 32");return;
+}
+mask=cidrToMask(cidrInput).join(".");
+}
+
+if(mask===""){
+showIPError("❌ أدخل Subnet Mask أو CIDR");return;
+}
+
+let ipParts=ip.split(".");
+let maskParts=mask.split(".");
+
+if(ipParts.length!==4||maskParts.length!==4){
+showIPError("❌ IP أو Subnet Mask غير صحيح");return;
+}
+
+let ipNumbers=ipParts.map(Number);
+let maskNumbers=maskParts.map(Number);
+
+for(let i=0;i<4;i++){
+if(isNaN(ipNumbers[i])||isNaN(maskNumbers[i])||
+ipNumbers[i]<0||ipNumbers[i]>255||
+maskNumbers[i]<0||maskNumbers[i]>255){
+showIPError("❌ كل جزء يجب أن يكون بين 0 و 255");return;
+}
+}
+
+let network=[];
+let broadcast=[];
+
+for(let i=0;i<4;i++){
+network[i]=ipNumbers[i]&maskNumbers[i];
+broadcast[i]=network[i]|(255-maskNumbers[i]);
+}
+
+let cidr=getCIDR(maskNumbers);
+let totalAddresses=2**(32-cidr);
+let usableHosts;
+
+if(cidr===31) usableHosts=0;
+else if(cidr===32) usableHosts=1;
+else usableHosts=totalAddresses-2;
+
+let firstHost=[...network];
+let lastHost=[...broadcast];
+
+if(cidr<31){
+firstHost[3]+=1;
+lastHost[3]-=1;
+}
+
+let subnetMask=maskNumbers.join(".");
+let wildcardMask=
+(255-maskNumbers[0])+"."+
+(255-maskNumbers[1])+"."+
+(255-maskNumbers[2])+"."+
+(255-maskNumbers[3]);
+
+document.getElementById("ipResult").innerHTML=
+"🌐 Network: "+network.join(".")+
+"<br><br>📡 Broadcast: "+broadcast.join(".")+
+"<br><br>🟢 First Host: "+firstHost.join(".")+
+"<br><br>🔵 Last Host: "+lastHost.join(".")+
+"<br><br>👥 Hosts: "+usableHosts+
+"<br><br>📐 CIDR: /"+cidr+
+"<br><br>🛡️ Subnet Mask: "+subnetMask+
+"<br><br>🎭 Wildcard Mask: "+wildcardMask+
+"<br><br>📦 Total Addresses: "+totalAddresses+
+"<br><br>👥 Usable Hosts: "+usableHosts;
+}
+
+function getCIDR(mask){
+let binary="";
+for(let i=0;i<4;i++){
+binary+=mask[i].toString(2).padStart(8,"0");
+}
+return binary.split("1").length-1;
+}
+
+function showIPError(message){
+document.getElementById("ipResult").innerHTML=message;
+}
+
+function cidrToMask(cidr){
+let mask=[];
+for(let i=0;i<4;i++){
+let bits=Math.min(Math.max(cidr-i*8,0),8);
+if(bits===0) mask.push(0);
+else mask.push(256-Math.pow(2,8-bits));
+}
+return mask;
+}
+
+function generateSubnets(){
+let ip=document.getElementById("ipInput").value.trim();
+let cidrValue=document.getElementById("cidrInput").value.trim();
+
+if(cidrValue===""){
+document.getElementById("subnetResult").innerHTML="❌ أدخل CIDR أولاً";
+return;
+}
+
+let cidr=parseInt(cidrValue,10);
+
+if(isNaN(cidr)||cidr<24||cidr>30){
+document.getElementById("subnetResult").innerHTML=
+"ℹ️ حاليًا جدول الشبكات يعمل من /24 إلى /30";
+return;
+}
+
+let parts=ip.split(".");
+if(parts.length!==4){
+document.getElementById("subnetResult").innerHTML="❌ IP Address غير صحيح";
+return;
+}
+
+let numbers=parts.map(Number);
+
+for(let i=0;i<4;i++){
+if(isNaN(numbers[i])||numbers[i]<0||numbers[i]>255){
+document.getElementById("subnetResult").innerHTML="❌ IP Address غير صحيح";
+return;
+}
+}
+
+let mask=cidrToMask(cidr);
+let network=[];
+
+for(let i=0;i<4;i++){
+network[i]=numbers[i]&mask[i];
+}
+
+let numberOfSubnets=2**(cidr-24);
+let blockSize=256/numberOfSubnets;
+
+let html="<h3>📊 Subnet Table</h3>";
+html+="عدد الشبكات: "+numberOfSubnets+"<br><br>";
+html+="<div class='subnet-table-container'><table class='subnet-table'>";
+
+html+="<tr>"+
+"<th>#</th><th>Network</th><th>First Host</th>"+
+"<th>Last Host</th><th>Broadcast</th><th>Hosts</th></tr>";
+
+for(let i=0;i<numberOfSubnets;i++){
+let start=i*blockSize;
+let end=start+blockSize-1;
+let firstHost=start+1;
+let lastHost=end-1;
+let hosts=blockSize-2;
+
+let subnetNetwork=network[0]+"."+network[1]+"."+network[2]+"."+start;
+let subnetFirstHost=network[0]+"."+network[1]+"."+network[2]+"."+firstHost;
+let subnetLastHost=network[0]+"."+network[1]+"."+network[2]+"."+lastHost;
+let subnetBroadcast=network[0]+"."+network[1]+"."+network[2]+"."+end;
+
+html+="<tr>"+
+"<td>"+(i+1)+"</td>"+
+"<td>"+subnetNetwork+"</td>"+
+"<td>"+subnetFirstHost+"</td>"+
+"<td>"+subnetLastHost+"</td>"+
+"<td>"+subnetBroadcast+"</td>"+
+"<td>"+hosts+"</td>"+
+"</tr>";
+}
+
+html+="</table></div>";
+document.getElementById("subnetResult").innerHTML=html;
+}
+</script>
+</body>
+</html>
